@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+venv/
+*.pyc
+
+# Node
+node_modules/
+
+# Environment
+.env
+
+# D: drive setup files (generated)
+venv/
+.python/
+start_environment.ps1
+start_env.bat
+update_requirements.ps1
+
+# Data
+*.csv
+*.parquet
+
+# Models
+*.pth
+*.h5
+models/
