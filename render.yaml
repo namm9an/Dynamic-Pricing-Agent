@@ -1,0 +1,39 @@
+services:
+  - type: web
+    name: dynamic-pricing-api
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: uvicorn backend.app:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.0
+      - key: LOG_TO_FILE
+        value: "false"
+      - key: MODEL_UPDATE_THRESHOLD
+        value: "100"
+      - key: RETRAIN_LOG_LEVEL
+        value: "INFO"
+      - key: FRONTEND_URL
+        sync: false
+    healthCheckPath: /health
+    autoDeploy: true
+
+# Cron job for daily retraining (Render Pro feature)
+# For free tier, implement as web endpoint triggered externally
+jobs:
+  - type: cron
+    name: daily-retrain
+    env: python
+    schedule: "0 2 * * *"  # Daily at 2 AM UTC
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: python backend/retrain.py
+    plan: starter
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.0
+      - key: MODEL_UPDATE_THRESHOLD
+        value: "100"
+      - key: RETRAIN_LOG_LEVEL
+        value: "INFO"

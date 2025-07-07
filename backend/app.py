@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import os
@@ -6,6 +6,12 @@ import pandas as pd
 import numpy as np
 import asyncio
 from pathlib import Path
+import logging
+import time
+from datetime import datetime
+import json
+from typing import Optional
+import uuid
 
 try:
     import torch
@@ -28,7 +34,31 @@ from backend.startup import initialize_system
 
 load_dotenv()
 
-app = FastAPI(title="Dynamic Pricing Agent API")
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler('pricing_agent.log') if os.getenv('LOG_TO_FILE') else logging.NullHandler()
+    ]
+)
+logger = logging.getLogger('pricing_agent')
+
+# Global metrics storage (in production, use Redis or database)
+metrics_store = {
+    'requests': 0,
+    'errors': 0,
+    'response_times': [],
+    'revenue_decisions': [],
+    'feedback_data': []
+}
+
+app = FastAPI(
+    title="Dynamic Pricing Agent API",
+    version="3.0.0",
+    description="Production-ready dynamic pricing system with monitoring and feedback loops"
+)
 
 # Global variable for the demand model
 demand_model = None
@@ -47,12 +77,49 @@ async def startup_event():
         print(f"⚠️ Could not load demand model: {e}")
         print("Will use fallback demand calculation")
 
-# Allow local frontend dev
+# Middleware for request tracking
+@app.middleware("http")
+async def track_requests(request, call_next):
+    start_time = time.time()
+    request_id = str(uuid.uuid4())
+    
+    # Log request
+    logger.info(f"Request {request_id}: {request.method} {request.url}")
+    
+    try:
+        response = await call_next(request)
+        process_time = time.time() - start_time
+        
+        # Track metrics
+        metrics_store['requests'] += 1
+        metrics_store['response_times'].append(process_time)
+        
+        # Keep only last 1000 response times for memory efficiency
+        if len(metrics_store['response_times']) > 1000:
+            metrics_store['response_times'] = metrics_store['response_times'][-1000:]
+            
+        logger.info(f"Request {request_id} completed in {process_time:.3f}s")
+        response.headers["X-Request-ID"] = request_id
+        response.headers["X-Process-Time"] = str(process_time)
+        
+        return response
+    except Exception as e:
+        metrics_store['errors'] += 1
+        logger.error(f"Request {request_id} failed: {str(e)}")
+        raise
+
+# CORS configuration for production
+allowed_origins = [
+    "http://localhost:3000",  # Local development
+    "https://dynamic-pricing.vercel.app",  # Production frontend
+    os.getenv("FRONTEND_URL", "*")  # Environment-specific frontend
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
 )
 
@@ -61,6 +128,23 @@ class DemandQuery(BaseModel):
     location: str
     product_id: str = "PROD_001"
     days: int = 30
+
+class FeedbackData(BaseModel):
+    price_set: float
+    actual_demand: float
+    revenue_generated: float
+    product_id: str = "PROD_001"
+    location: str = "US"
+    timestamp: Optional[datetime] = None
+    ab_test_group: Optional[str] = None
+
+class SystemMetrics(BaseModel):
+    total_requests: int
+    error_rate: float
+    avg_response_time: float
+    p95_response_time: float
+    uptime_hours: float
+    model_version: str
 
 def generate_input_sequence(price: float, location: str, product_id: str, days: int = 30):
     """Generate input sequence for demand prediction."""
@@ -83,12 +167,29 @@ def generate_input_sequence(price: float, location: str, product_id: str, days: 
 
 @app.get("/health")
 async def health_check():
-    """Simple health-check endpoint used by CI/CD and container orchestrators."""
-    return {"status": "active"}
+    """Enhanced health-check endpoint with system metrics."""
+    response_times = metrics_store['response_times']
+    
+    return {
+        "status": "healthy",
+        "timestamp": datetime.utcnow().isoformat(),
+        "version": "3.0.0",
+        "metrics": {
+            "total_requests": metrics_store['requests'],
+            "total_errors": metrics_store['errors'],
+            "error_rate": metrics_store['errors'] / max(metrics_store['requests'], 1) * 100,
+            "avg_response_time": np.mean(response_times) if response_times else 0,
+            "p95_response_time": np.percentile(response_times, 95) if len(response_times) >= 20 else 0,
+            "model_status": "loaded" if demand_model else "fallback",
+            "torch_available": TORCH_AVAILABLE
+        }
+    }
 
 @app.post('/predict-demand')
 async def predict_demand(query: DemandQuery):
     """Predict demand for given price, location, and product."""
+    logger.info(f"Demand prediction request for {query.product_id} at price {query.price} in {query.location}")
+    
     try:
         # Generate input sequence using synthetic data as fallback
         sequences = generate_input_sequence(
@@ -151,6 +252,8 @@ class OptimalPriceRequest(BaseModel):
 @app.post("/get-optimal-price")
 async def get_optimal_price(req: OptimalPriceRequest):
     """Return price suggested by RL agent along with expected revenue."""
+    logger.info(f"Optimal price request for {req.product_id} with base price {req.base_price} in {req.location}")
+    
     try:
         # Re-use demand estimation endpoint logic
         demand_resp = await predict_demand(
@@ -163,10 +266,158 @@ async def get_optimal_price(req: OptimalPriceRequest):
         )
         demand_val = demand_resp["predicted_demand"]
         res = recommend_price(demand_val, last_multiplier=1.0, base_price=req.base_price)
+        
+        # Track revenue decision
+        metrics_store['revenue_decisions'].append({
+            "timestamp": datetime.utcnow().isoformat(),
+            "product_id": req.product_id,
+            "base_price": req.base_price,
+            "optimal_price": res["optimal_price"],
+            "expected_revenue": res["expected_revenue"],
+            "demand_forecast": demand_val
+        })
+        
+        logger.info(f"Price recommendation: ${res['optimal_price']:.2f} (expected revenue: ${res['expected_revenue']:.2f})")
+        
         return {
             "optimal_price": res["optimal_price"],
             "expected_revenue": res["expected_revenue"],
             "demand_forecast": demand_val,
         }
     except Exception as e:
+        logger.error(f"Optimal price error for {req.product_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Optimal price error: {str(e)}")
+
+# New endpoints for Phase 3
+
+@app.post("/record-outcome")
+async def record_outcome(feedback: FeedbackData, background_tasks: BackgroundTasks):
+    """Record actual outcomes for retraining feedback loop."""
+    try:
+        if feedback.timestamp is None:
+            feedback.timestamp = datetime.utcnow()
+            
+        feedback_record = {
+            "timestamp": feedback.timestamp.isoformat() if feedback.timestamp else datetime.utcnow().isoformat(),
+            "product_id": feedback.product_id,
+            "location": feedback.location,
+            "price_set": feedback.price_set,
+            "actual_demand": feedback.actual_demand,
+            "revenue_generated": feedback.revenue_generated,
+            "ab_test_group": feedback.ab_test_group
+        }
+        
+        # Store feedback (in production, save to database)
+        metrics_store['feedback_data'].append(feedback_record)
+        
+        # Keep only last 10000 feedback records for memory efficiency
+        if len(metrics_store['feedback_data']) > 10000:
+            metrics_store['feedback_data'] = metrics_store['feedback_data'][-10000:]
+            
+        logger.info(f"Recorded outcome: {feedback.product_id} - Price: ${feedback.price_set}, Demand: {feedback.actual_demand}, Revenue: ${feedback.revenue_generated}")
+        
+        # Schedule background task for potential model update
+        background_tasks.add_task(check_retraining_trigger)
+        
+        return {
+            "status": "recorded",
+            "timestamp": feedback_record["timestamp"],
+            "feedback_id": len(metrics_store['feedback_data'])
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to record outcome: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to record outcome: {str(e)}")
+
+@app.get("/metrics")
+async def get_system_metrics():
+    """Get comprehensive system metrics for monitoring dashboard."""
+    try:
+        response_times = metrics_store['response_times']
+        
+        # Calculate performance metrics
+        avg_response_time = np.mean(response_times) if response_times else 0
+        p95_response_time = np.percentile(response_times, 95) if len(response_times) >= 20 else 0
+        error_rate = metrics_store['errors'] / max(metrics_store['requests'], 1) * 100
+        
+        # Recent feedback analysis
+        recent_feedback = metrics_store['feedback_data'][-100:] if metrics_store['feedback_data'] else []
+        avg_revenue = np.mean([f['revenue_generated'] for f in recent_feedback]) if recent_feedback else 0
+        
+        # Revenue decisions analysis
+        recent_decisions = metrics_store['revenue_decisions'][-100:] if metrics_store['revenue_decisions'] else []
+        avg_price_change = 0
+        if len(recent_decisions) > 1:
+            price_changes = [abs(d['optimal_price'] - d['base_price']) / d['base_price'] 
+                           for d in recent_decisions if d['base_price'] > 0]
+            avg_price_change = np.mean(price_changes) * 100 if price_changes else 0
+        
+        return {
+            "system_health": {
+                "status": "healthy" if error_rate < 5 else "degraded",
+                "uptime_hours": (time.time() - app.state.start_time) / 3600 if hasattr(app.state, 'start_time') else 0,
+                "total_requests": metrics_store['requests'],
+                "error_rate": round(error_rate, 2),
+                "avg_response_time": round(avg_response_time * 1000, 2),  # Convert to ms
+                "p95_response_time": round(p95_response_time * 1000, 2)   # Convert to ms
+            },
+            "model_performance": {
+                "model_status": "loaded" if demand_model else "fallback",
+                "torch_available": TORCH_AVAILABLE,
+                "total_predictions": len(recent_decisions),
+                "avg_revenue_per_decision": round(avg_revenue, 2),
+                "avg_price_change_percent": round(avg_price_change, 2)
+            },
+            "feedback_loop": {
+                "total_feedback_records": len(metrics_store['feedback_data']),
+                "recent_feedback_count": len(recent_feedback),
+                "last_feedback_time": recent_feedback[-1]['timestamp'] if recent_feedback else None
+            },
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to get metrics: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get metrics: {str(e)}")
+
+@app.get("/ab-test/{user_id}")
+async def get_ab_test_group(user_id: str):
+    """Assign user to A/B test group for pricing experiments."""
+    try:
+        # Simple hash-based assignment for consistent grouping
+        hash_value = hash(user_id) % 100
+        
+        # 50/50 split between control and test groups
+        group = "test" if hash_value < 50 else "control"
+        
+        logger.info(f"User {user_id} assigned to A/B test group: {group}")
+        
+        return {
+            "user_id": user_id,
+            "ab_test_group": group,
+            "strategy": "dynamic_pricing" if group == "test" else "static_pricing",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to assign A/B test group: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to assign A/B test group: {str(e)}")
+
+async def check_retraining_trigger():
+    """Background task to check if model retraining should be triggered."""
+    try:
+        feedback_count = len(metrics_store['feedback_data'])
+        
+        # Trigger retraining if we have enough new feedback data
+        if feedback_count > 0 and feedback_count % 100 == 0:
+            logger.info(f"Retraining trigger: {feedback_count} feedback records collected")
+            # In production, this would trigger a background job or webhook
+            # For now, just log the trigger event
+            
+    except Exception as e:
+        logger.error(f"Error in retraining trigger check: {str(e)}")
+
+# Initialize app start time for uptime calculation
+@app.on_event("startup")
+async def set_start_time():
+    app.state.start_time = time.time()

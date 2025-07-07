@@ -6,8 +6,10 @@
   "scripts": {
     "dev": "vite --port 3000",
     "build": "vite build",
-    "preview": "vite preview --port 3000"
+    "preview": "vite preview --port 3000",
+    "start": "vite preview --port 3000"
   },
+  "homepage": "https://dynamic-pricing.vercel.app",
   "dependencies": {
     "axios": "^1.7.2",
     "@supabase/supabase-js": "^2.39.6",
