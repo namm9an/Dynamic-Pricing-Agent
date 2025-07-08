@@ -31,6 +31,8 @@ except (ImportError, OSError):
 from backend.pricing_engine.rl_agent import recommend_price
 from backend.synthetic_data import generate_sample_data_for_product
 from backend.startup import initialize_system
+from backend.cache import cache_manager
+from backend.auth import auth_manager, get_current_user, RequireScopes, User, Token, oauth
 
 load_dotenv()
 
@@ -181,7 +183,8 @@ async def health_check():
             "avg_response_time": np.mean(response_times) if response_times else 0,
             "p95_response_time": np.percentile(response_times, 95) if len(response_times) >= 20 else 0,
             "model_status": "loaded" if demand_model else "fallback",
-            "torch_available": TORCH_AVAILABLE
+            "torch_available": TORCH_AVAILABLE,
+            "cache_status": cache_manager.health_check()
         }
     }
 
@@ -254,6 +257,15 @@ async def get_optimal_price(req: OptimalPriceRequest):
     """Return price suggested by RL agent along with expected revenue."""
     logger.info(f"Optimal price request for {req.product_id} with base price {req.base_price} in {req.location}")
     
+    # Create cache key
+    cache_key = f"price:{req.product_id}:{req.location}:{req.base_price}"
+    
+    # Check cache first
+    cached_result = cache_manager.get(cache_key)
+    if cached_result:
+        logger.info(f"Cache hit for {cache_key}")
+        return cached_result
+    
     try:
         # Re-use demand estimation endpoint logic
         demand_resp = await predict_demand(
@@ -279,11 +291,16 @@ async def get_optimal_price(req: OptimalPriceRequest):
         
         logger.info(f"Price recommendation: ${res['optimal_price']:.2f} (expected revenue: ${res['expected_revenue']:.2f})")
         
-        return {
+        result = {
             "optimal_price": res["optimal_price"],
             "expected_revenue": res["expected_revenue"],
             "demand_forecast": demand_val,
         }
+        
+        # Cache the result
+        cache_manager.set(cache_key, result, ttl=300)  # Cache for 5 minutes
+        
+        return result
     except Exception as e:
         logger.error(f"Optimal price error for {req.product_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Optimal price error: {str(e)}")
@@ -416,6 +433,46 @@ async def check_retraining_trigger():
             
     except Exception as e:
         logger.error(f"Error in retraining trigger check: {str(e)}")
+
+# OAuth2 authentication endpoints
+
+@app.get("/auth/login/{provider}")
+async def login(provider: str, request: Request):
+    """Initiate OAuth login flow"""
+    redirect_uri = request.url_for("auth_callback", provider=provider)
+    return await oauth.create_client(provider).authorize_redirect(request, redirect_uri)
+
+@app.get("/auth/callback/{provider}")
+async def auth_callback(provider: str, request: Request):
+    """Handle OAuth callback and issue tokens"""
+    user_data = await auth_manager.handle_oauth_callback(provider, request)
+    tokens = auth_manager.create_user_tokens(user_data)
+    return tokens
+
+@app.post('/auth/token_refresh')
+async def refresh_access_token(request: Request):
+    """Refresh access token using refresh token"""
+    refresh_token = request.json().get('refresh_token')
+    
+    try:
+        token_data = auth_manager.verify_token(refresh_token, "refresh")
+        user_id = token_data.username
+        
+        # Create new access token
+        new_access_token = auth_manager.create_access_token({
+            "sub": user_id,
+            "scopes": token_data.scopes
+        })
+        
+        return {
+            "access_token": new_access_token,
+            "token_type": "bearer",
+            "expires_in": ACCESS_TOKEN_EXPIRE_MINUTES * 60
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to refresh access token: {str(e)}")
+        raise HTTPException(status_code=401, detail=f"Token refresh error: {str(e)}")
 
 # Initialize app start time for uptime calculation
 @app.on_event("startup")
