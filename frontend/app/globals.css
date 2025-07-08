@@ -1,0 +1,500 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 0 0% 98%;
+    --sidebar-primary-foreground: 240 5.9% 10%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+/* Custom slider styles */
+.slider::-webkit-slider-thumb {
+  appearance: none;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: linear-gradient(45deg, #ff6b35, #eae0d5);
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(255, 107, 53, 0.5);
+}
+
+.slider::-moz-range-thumb {
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: linear-gradient(45deg, #ff6b35, #eae0d5);
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 0 10px rgba(255, 107, 53, 0.5);
+}
+
+/* Wavy animation */
+@keyframes wave {
+  0%,
+  100% {
+    transform: scaleX(1);
+  }
+  50% {
+    transform: scaleX(1.1);
+  }
+}
+
+.wavy-underline {
+  animation: wave 2s ease-in-out infinite;
+}
+
+/* Hover effects */
+.hover-scale {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-scale:hover {
+  transform: scale(1.05);
+  box-shadow: 0 20px 40px rgba(255, 107, 53, 0.3);
+}
+
+.data-transition {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(45deg, #ff6b35, #eae0d5);
+  border-radius: 6px;
+  border: 2px solid rgba(0, 0, 0, 0.3);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(45deg, #eae0d5, #ff6b35);
+}
+
+/* Glass-morphism effects */
+.glass-card {
+  backdrop-filter: blur(16px);
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 107, 53, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.glass-card:hover {
+  border-color: rgba(255, 107, 53, 1);
+  box-shadow: 0 25px 50px rgba(255, 107, 53, 0.4);
+}
+
+/* Enhanced Vestox hover states */
+.vestox-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.vestox-card:hover {
+  transform: scale(1.05) translateY(-5px);
+  box-shadow: 0 25px 50px rgba(255, 107, 53, 0.4);
+  border: 1px solid #ff6b35;
+}
+
+/* Premium loading animations */
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.shimmer {
+  background: linear-gradient(90deg, transparent, rgba(255, 107, 53, 0.2), transparent);
+  background-size: 200px 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Pulsing status indicators */
+@keyframes pulse-orange {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(255, 107, 53, 0.7);
+  }
+  50% {
+    opacity: 0.8;
+    box-shadow: 0 0 0 10px rgba(255, 107, 53, 0);
+  }
+}
+
+.pulse-orange {
+  animation: pulse-orange 2s infinite;
+}
+
+/* Enhanced typography hierarchy */
+.hero-text {
+  font-size: 3.5rem;
+  font-weight: 700;
+  color: #ff6b35;
+  text-shadow: 0 0 30px rgba(255, 107, 53, 0.3);
+}
+
+.section-header {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: white;
+}
+
+.metric-text {
+  font-size: 1.875rem;
+  font-family: "JetBrains Mono", monospace;
+  color: #ff6b35;
+}
+
+/* Advanced chart animations */
+.chart-enter {
+  animation: slideInFromBottom 0.6s ease-out;
+}
+
+@keyframes slideInFromBottom {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Mobile-first touch interactions */
+@media (max-width: 768px) {
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .mobile-card {
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .mobile-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+/* Performance optimizations */
+.gpu-accelerated {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Apple-Grade Animation System - 120fps Ready */
+* {
+  transform: translateZ(0);
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Apple's Signature Easing Curves */
+:root {
+  --ease-out-quart: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --duration-fast: 0.15s;
+  --duration-normal: 0.3s;
+  --duration-slow: 0.6s;
+  --duration-extra-slow: 0.8s;
+}
+
+.apple-ease {
+  transition: all var(--duration-normal) var(--ease-out-quart);
+}
+
+.apple-spring {
+  transition: transform var(--duration-slow) var(--ease-spring);
+}
+
+.apple-bounce {
+  transition: all var(--duration-normal) var(--ease-bounce);
+}
+
+/* Magnetic Hover Effects with 3D Transforms */
+.magnetic-card {
+  transform: translateZ(0);
+  transition: transform var(--duration-normal) ease-out;
+  transform-style: preserve-3d;
+}
+
+.magnetic-card:hover {
+  transform: translateZ(20px) rotateX(5deg) rotateY(5deg) scale(1.02);
+  box-shadow: 0 30px 60px rgba(255, 107, 53, 0.3);
+}
+
+/* Depth-Based Shadow System */
+.depth-1 {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+}
+
+.depth-2 {
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.12);
+}
+
+.depth-3 {
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.19), 0 6px 6px rgba(0, 0, 0, 0.23);
+}
+
+.depth-4 {
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25), 0 15px 12px rgba(0, 0, 0, 0.22);
+}
+
+/* Apple Button Press Feedback */
+.apple-button {
+  transform: scale(1);
+  transition: transform var(--duration-fast) ease, box-shadow var(--duration-normal) ease;
+  cursor: pointer;
+  user-select: none;
+}
+
+.apple-button:active {
+  transform: scale(0.96);
+  transition-duration: 0.05s;
+}
+
+.apple-button:hover {
+  transform: scale(1.02);
+  box-shadow: 0 8px 25px rgba(255, 107, 53, 0.4);
+}
+
+/* Fluid Layout Transitions */
+.grid-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+  transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.pricing-card {
+  transition: grid-column var(--duration-normal) ease, grid-row var(--duration-normal) ease;
+}
+
+/* Enhanced Glass Morphism */
+.enhanced-glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* Liquid Motion Graphics */
+.liquid-morph {
+  transition: all var(--duration-extra-slow) cubic-bezier(0.23, 1, 0.32, 1);
+  transform-origin: center;
+}
+
+/* Progress Ring Animations */
+.progress-ring {
+  transform: rotate(-90deg);
+  transition: stroke-dashoffset var(--duration-extra-slow) var(--ease-out-quart);
+}
+
+/* Toggle Switch Apple Style */
+.toggle-switch {
+  width: 60px;
+  height: 34px;
+  border-radius: 17px;
+  background: #ccc;
+  transition: all var(--duration-normal) var(--ease-out-quart);
+  cursor: pointer;
+  position: relative;
+}
+
+.toggle-switch.active {
+  background: #ff6b35;
+}
+
+.toggle-knob {
+  width: 30px;
+  height: 30px;
+  border-radius: 15px;
+  background: white;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: transform var(--duration-normal) var(--ease-out-quart);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-switch.active .toggle-knob {
+  transform: translateX(26px);
+}
+
+/* Parallax Elements */
+.parallax {
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+/* Smooth Momentum Scrolling */
+.smooth-scroll {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* GPU Acceleration Utilities */
+.gpu-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+  will-change: transform;
+}
+
+/* Stagger Animation Base */
+.stagger-item {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: staggerFadeIn var(--duration-slow) var(--ease-out-quart) forwards;
+}
+
+@keyframes staggerFadeIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Micro-interaction Enhancements */
+.micro-bounce:hover {
+  animation: microBounce 0.4s var(--ease-bounce);
+}
+
+@keyframes microBounce {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+/* Loading Shimmer Effect */
+.shimmer-enhanced {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 107, 53, 0.1),
+    rgba(255, 107, 53, 0.2),
+    rgba(255, 107, 53, 0.1),
+    transparent
+  );
+  background-size: 200px 100%;
+  animation: shimmerFlow 2s infinite;
+}
+
+@keyframes shimmerFlow {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+/* Contextual Animation Classes */
+.success-pulse {
+  animation: successPulse 0.6s var(--ease-out-quart);
+}
+
+@keyframes successPulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+    background-color: rgba(0, 212, 170, 0.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.error-shake {
+  animation: errorShake 0.4s var(--ease-out-quart);
+}
+
+@keyframes errorShake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
+
+/* Advanced Hover States */
+.hover-lift {
+  transition: transform var(--duration-normal) var(--ease-out-quart), box-shadow var(--duration-normal)
+    var(--ease-out-quart);
+}
+
+.hover-lift:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 20px 40px rgba(255, 107, 53, 0.2);
+}
+
+/* Responsive Animation Scaling */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* High refresh rate optimization */
+@media (min-resolution: 120dpi) {
+  .high-fps {
+    animation-timing-function: linear;
+    will-change: transform, opacity;
+  }
+}
