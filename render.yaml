@@ -9,6 +9,8 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.10.0
+      - key: PYTHONPATH
+        value: /opt/render/project/src
       - key: LOG_TO_FILE
         value: "false"
       - key: MODEL_UPDATE_THRESHOLD
@@ -33,6 +35,8 @@ jobs:
     envVars:
       - key: PYTHON_VERSION
         value: 3.10.0
+      - key: PYTHONPATH
+        value: /opt/render/project/src
       - key: MODEL_UPDATE_THRESHOLD
         value: "100"
       - key: RETRAIN_LOG_LEVEL
