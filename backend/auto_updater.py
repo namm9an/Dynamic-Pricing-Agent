@@ -28,29 +28,43 @@ class AutoUpdateService:
             schedule.run_pending()
             time.sleep(1)
 
-    def detect_drift(self, new_data: np.ndarray, reference_data: np.ndarray) -> bool:
+    def detect_drift(self, new_data: np.ndarray, reference_data: np.ndarray, threshold: float = 0.05) -> bool:
         """
-        Detect drift between new and reference datasets
+        Detect drift between new and reference datasets using advanced statistical methods
 
         Args:
             new_data: New data to be analyzed
             reference_data: Baseline data for comparison
+            threshold: P-value threshold for drift detection (default: 0.05)
 
         Returns:
             Boolean indicating if drift is detected
         """
         try:
-            statistic, p_value = ks_2samp(new_data.flatten(), reference_data.flatten())
+            # Kolmogorov-Smirnov test for distribution drift
+            ks_statistic, ks_p_value = ks_2samp(new_data.flatten(), reference_data.flatten())
+            
+            # Log drift detection metrics
+            drift_metrics = {
+                'ks_statistic': ks_statistic,
+                'ks_p_value': ks_p_value,
+                'threshold': threshold,
+                'drift_detected': ks_p_value < threshold
+            }
+            
+            print(f"Drift Detection Metrics: {drift_metrics}")
 
-            if p_value < 0.05:
+            if ks_p_value < threshold:
                 with self.lock:
                     self.drift_detected = True
+                    print(f"⚠️  Data drift detected! KS p-value: {ks_p_value:.6f} < {threshold}")
                 return True
-
-            return False
+            else:
+                print(f"✅ No drift detected. KS p-value: {ks_p_value:.6f} >= {threshold}")
+                return False
 
         except Exception as e:
-            print(f"Error in drift detection: {e}")
+            print(f"❌ Error in drift detection: {e}")
             return False
 
     def check_and_retrain(self) -> None:
