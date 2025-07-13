@@ -11,9 +11,6 @@ Features:
 - Memory-enabled agents
 - Comprehensive error handling
 """
-Pricing Orchestrator for Dynamic Pricing Agent
-Coordinates Data Agent and Pricing Agent for optimal pricing strategies
-"""
 
 import json
 from typing import Dict, Any, List
