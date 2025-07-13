@@ -189,6 +189,48 @@ def train_optimized_agent():
         print("⚠️ Optimized model didn't meet improvement threshold, keeping existing model")
         return None
 
+async def train_rl_agent(
+    existing_agent_path=None,
+    env_config=None,
+    total_timesteps=50000,
+    learning_rate=0.0001
+):
+    """Train RL agent with given configuration."""
+    print("🚀 Training RL agent...")
+    
+    # Create environment
+    env = OptimizedPricingEnv(base_price=10.0, change_penalty=0.05)
+    
+    # Create or load model
+    if existing_agent_path and os.path.exists(existing_agent_path):
+        try:
+            model = PPO.load(existing_agent_path, env=env)
+            print(f"✅ Loaded existing agent from {existing_agent_path}")
+        except Exception as e:
+            print(f"⚠️ Could not load existing agent: {e}")
+            model = PPO(
+                "MlpPolicy",
+                env,
+                verbose=0,
+                learning_rate=learning_rate,
+                device='cpu'
+            )
+    else:
+        model = PPO(
+            "MlpPolicy",
+            env,
+            verbose=0,
+            learning_rate=learning_rate,
+            device='cpu'
+        )
+    
+    # Train the model
+    print(f"🏋️ Training for {total_timesteps} timesteps...")
+    model.learn(total_timesteps=total_timesteps)
+    
+    print("✅ RL agent training completed")
+    return model
+
 if __name__ == "__main__":
     stats = train_optimized_agent()
     if stats:

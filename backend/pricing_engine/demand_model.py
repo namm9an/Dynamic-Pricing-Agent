@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import joblib
 import numpy as np
-from backend.database import get_sales_data, get_external_factors
+from database import get_sales_data, get_external_factors
 from typing import Tuple, Optional
 import logging
 

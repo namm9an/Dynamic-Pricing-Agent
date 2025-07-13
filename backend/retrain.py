@@ -41,7 +41,7 @@ except (ImportError, OSError):
 from pricing_engine.demand_model import DemandModel
 from train_demand import train_demand_model
 from train_agent import train_rl_agent
-from database import get_feedback_data, save_model_version
+from database import get_feedback_data, save_model_version, get_feedback_count_since
 
 # Load environment variables
 load_dotenv()
@@ -372,12 +372,6 @@ class ModelRetrainer:
             })
         
         return feedback_data
-
-async def get_feedback_count_since(timestamp: datetime) -> int:
-    """Get count of feedback records since given timestamp."""
-    # In production, query database for count
-    # For development, return a sample count
-    return 150
 
 async def main():
     """Main retraining script entry point."""
