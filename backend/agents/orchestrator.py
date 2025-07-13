@@ -1,6 +1,18 @@
 """
 Pricing Orchestrator for Dynamic Pricing Agent
 Coordinates Data Agent and Pricing Agent for optimal pricing strategies
+
+This module implements the core orchestration logic for the AI-powered pricing system,
+managing the interaction between data collection agents and pricing recommendation agents.
+
+Features:
+- CrewAI agent coordination
+- Sequential task processing
+- Memory-enabled agents
+- Comprehensive error handling
+"""
+Pricing Orchestrator for Dynamic Pricing Agent
+Coordinates Data Agent and Pricing Agent for optimal pricing strategies
 """
 
 import json
