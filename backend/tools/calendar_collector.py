@@ -8,6 +8,7 @@ import os
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
 from crewai.tools import BaseTool
+from pydantic import ConfigDict
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
@@ -18,6 +19,11 @@ class CalendarCollectorTool(BaseTool):
     
     name: str = "calendar_collector"
     description: str = "Collects high-impact events from Google Calendar for demand forecasting"
+    
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True,
+        extra='forbid'
+    )
     
     def __init__(self):
         """Initialize the calendar collector with Google Calendar API credentials"""

@@ -8,6 +8,7 @@ import re
 from datetime import datetime, timedelta
 from typing import Dict, Any, List
 from crewai.tools import BaseTool
+from pydantic import ConfigDict
 import snscrape.modules.twitter as sntwitter
 
 
@@ -16,6 +17,11 @@ class TwitterScraperTool(BaseTool):
     
     name: str = "twitter_scraper"
     description: str = "Scrapes Twitter/X for market sentiment and trending topics related to a query"
+    
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True,
+        extra='forbid'
+    )
     
     def _run(self, query: str) -> str:
         """
